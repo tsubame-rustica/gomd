@@ -12,7 +12,7 @@ function Post() {
 
   useEffect(() => {
     // Viteプロキシ経由で Go API にアクセス
-    fetch(`/api/memo/getPost/${category}/${title}`)
+    fetch(`/api/getPost/${category}/${title}`)
       .then(res => res.json())
       .then(data => {
         // Goから送られてきた data.content をセット

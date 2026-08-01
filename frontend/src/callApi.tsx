@@ -16,7 +16,7 @@ function fetchPostsByCategory(category: string): { posts: Post[] } {
     const [posts, setPosts] = useState<Post[]>([]);
 
     useEffect(() => {
-     fetch(`/api/memo/getPosts/${category}`)
+     fetch(`/api/getPosts/${category}`)
         .then(res => res.json())
         .then(data => {
             if (data.result) {
@@ -37,7 +37,7 @@ function fetchCategories(): { categories: Category[] } {
     const [categories, setCategories] = useState<Category[]>([]);
 
     useEffect(() => {
-     fetch(`/api/memo/getCategories`)
+     fetch(`/api/getCategories`)
         .then(res => res.json())
         .then(data => {
             if (data.result) {
