@@ -1,21 +1,44 @@
 package main
 
 import (
-	"bytes"
-	"net/http"
-	"os"
-	"path/filepath"
-
 	"github.com/gin-gonic/gin"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/extension"
+
+	"gorm.io/gorm"
+
+	"backend/admin"
 )
 
-type JsonResponse struct {
-	Message string `json:"message"`
+var db *gorm.DB
+
+type PostResponse struct {
+	Content string `json:"content"`
+}
+
+type CmnContentList struct {
+	Title string `json:"title"`
+	Href  string `json:"href"`
+	Key   string `json:"key"`
+}
+
+type CmnResponse struct {
+	Result []CmnContentList `json:"result"`
+}
+
+type Category struct {
+	ID      uint   `json:"id" gorm:"primaryKey"`
+	Name    string `json:"name"`
+	DirName string `json:"dir_name"`
+}
+
+type Post struct {
+	ID         uint   `json:"id" gorm:"primaryKey"`
+	Title      string `json:"title"`
+	FileName   string `json:"file_name"`
+	CategoryID uint   `json:"category_id"`
 }
 
 func main() {
+	InitDB()
 	r := gin.Default()
 
 	// CORS設定
@@ -33,42 +56,35 @@ func main() {
 		c.Next()
 	})
 
+	adminGroup := r.Group("/api/admin")
+	{
+		adminGroup.GET("/login")
+
+		// カテゴリの作成・更新・削除 (CRUD)
+		adminGroup.POST("/categories", admin.CreateCategory)
+		adminGroup.PUT("/categories/:id", admin.UpdateCategory)
+		adminGroup.DELETE("/categories/:id", admin.DeleteCategory)
+
+		// 記事の作成・更新・削除
+		adminGroup.POST("/posts", admin.CreatePost)
+		adminGroup.PUT("/posts/:id", admin.UpdatePost)
+		adminGroup.DELETE("/posts/:id", admin.DeletePost)
+	}
+
 	r.GET("/api/hello", func(c *gin.Context) {
-		var jr JsonResponse
-		jr.Message = "Hello World!"
+		var jr PostResponse
+		jr.Content = "Hello World!"
 		c.JSON(200, jr)
 	})
 
 	// 静的ファイルの提供
-	r.Static("/api/memo/content", "./content")
+	r.Static("/api/content", "./content")
 
-	r.GET("api/memo/:category/:slug", func(c *gin.Context) {
-		category := c.Param("category")
-		slug := c.Param("slug")
+	r.GET("/api/getPost/:category/:title", GetPost)
 
-		mdPath := filepath.Join("content", category, slug, slug+".md")
+	r.GET("/api/getCategories", GetCategories)
 
-		source, err := os.ReadFile(mdPath)
-
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "記事が見つかりません"})
-			return
-		}
-
-		// MarkdownをHTMLに変換
-		md := goldmark.New(
-			goldmark.WithExtensions(extension.GFM), // テーブルや取り消し線などを有効化
-		)
-
-		var buf bytes.Buffer
-		if err := md.Convert(source, &buf); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "変換エラー"})
-			return
-		}
-
-		// 変換したHTMLをJSONで返す
-		c.JSON(http.StatusOK, JsonResponse{Message: buf.String()})
-	})
+	r.GET("/api/getPosts/:category", GetPosts)
 
 	// 8080ポートでサーバーを起動
 	r.Run(":8080")

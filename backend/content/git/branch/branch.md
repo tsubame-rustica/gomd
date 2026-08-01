@@ -1,17 +1,5 @@
 # ブランチの命名規則あれこれ
 
-Last Updated: February 7, 2026 1:27 AM
-No.: 999
-category: 知識
-Status: In progress
-
-<aside>
-⚠️
-
-命名の手法はいくつかあるので，参考程度にしてください
-
-</aside>
-
 基本的なブランチの種類です[1]．
 
 | ブランチ名 | 役割 | 派生元 |
