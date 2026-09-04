@@ -1,6 +1,10 @@
-# ブランチの命名規則あれこれ
+---
+title: "ブランチの命名規則"
+order: 20
+---
 
-基本的なブランチの種類です[1]．
+# ブランチの命名規則
+基本的なブランチの種類です[^1]．
 
 | ブランチ名 | 役割 | 派生元 |
 | --- | --- | --- |
@@ -25,6 +29,4 @@
 
 この5つのケースが主に使われています．このうち，ブランチ名はローワーキャメルケースやローワースネークケース，ケバブケースを使用するのが良いと思います．
 
-### 参考文献
-
-[1] @Hashimoto-Noriaki(Noriaki Hashimoto), 「Git ブランチの命名規則」, Qiita, [https://qiita.com/Hashimoto-Noriaki/items/5d990e21351b331d2aa1](https://qiita.com/Hashimoto-Noriaki/items/5d990e21351b331d2aa1), 2026年2月6日参照
+[^1]: @Hashimoto-Noriaki(Noriaki Hashimoto), 「Git ブランチの命名規則」, Qiita, [https://qiita.com/Hashimoto-Noriaki/items/5d990e21351b331d2aa1](https://qiita.com/Hashimoto-Noriaki/items/5d990e21351b331d2aa1), 2026年2月6日参照

@@ -8,8 +8,6 @@ services:
       - ./backend:/app
     environment:
       - CGO_ENABLED=0
-    depends_on:
-      - db
 
   frontend:
     build:
@@ -21,19 +19,3 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
-
-  db:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: gomd
-      TZ: UTC
-    volumes:
-      - db-data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
-
-volumes:
-  db-data:

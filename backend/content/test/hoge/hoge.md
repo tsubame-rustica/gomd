@@ -1,3 +1,8 @@
+---
+title: "テスト"
+order: 10
+---
+
 # テスト
 - test1
 - test2
