@@ -1,8 +1,8 @@
-# ドキュメントコンテンツ管理規則 (`content/`)
+# ドキュメントコンテンツ管理規則 (`contents/`)
 
 本リポジトリで管理・表示する技術ドキュメント（Markdownファイルおよび静的アセット）の格納規則と記述フォーマットに関する仕様です。
 
-ドキュメントファイルは、バックエンドのコンテンツ管理ディレクトリ（`backend/content/`）配下に配置します。
+ドキュメントファイルは、バックエンドのコンテンツ管理ディレクトリ（`backend/contents/`）配下に配置します。
 
 ---
 
@@ -13,7 +13,7 @@
 ### ディレクトリ構成例
 
 ```text
-backend/content/
+backend/contents/
 ├── git/                               # 大カテゴリ（第1階層）
 │   ├── _category.yml                  # カテゴリのメタデータ
 │   ├── default/                       # サブカテゴリ（第2階層）
@@ -131,11 +131,11 @@ goldmark Footnote 拡張に対応しており、参考文献や注釈を脚注�
 
 Markdown本文で画像を挿入する際は、以下のいずれかのパス形式を使用します。
 
-#### パス指定の例（`backend/content/test/hoge/image/sample.png` の場合）
+#### パス指定の例（`backend/contents/test/hoge/image/sample.png` の場合）
 
 1. **コンテンツAPIパス指定（推奨）:**
    ```markdown
-   ![サンプル画像](/api/content/test/hoge/image/sample.png)
+   ![サンプル画像](/api/contents/test/hoge/image/sample.png)
    ```
 2. **ルート相対パス指定（開発環境プロキシ対応）:**
    ```markdown

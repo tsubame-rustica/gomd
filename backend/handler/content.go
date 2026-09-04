@@ -20,8 +20,8 @@ func NewContentHandler(contentRoot string) *ContentHandler {
 	return &ContentHandler{contentRoot: contentRoot}
 }
 
-// GetContent は GET /api/content/*path のハンドラ。
-// content/ 配下の .md ファイルを読み込み、HTML に変換して返す。
+// GetContent は GET /api/contents/*path のハンドラ。
+// contents/ 配下の .md ファイルを読み込み、HTML に変換して返す。
 func (h *ContentHandler) GetContent(c *gin.Context) {
 	// *path パラメータを取得（例: /git/default/default.md）
 	urlPath := c.Param("path")
@@ -76,7 +76,10 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"content": buf.String()})
+	c.JSON(http.StatusOK, gin.H{
+		"content":  buf.String(),
+		"contents": buf.String(),
+	})
 }
 
 // stripFrontmatter は --- で囲まれた Frontmatter ブロックを除去して残りのバイト列を返す。

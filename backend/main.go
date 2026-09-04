@@ -26,13 +26,14 @@ func main() {
 	})
 
 	// ドキュメントツリーのキャッシュビルダーを初期化
-	builder := docs.NewCachedBuilder("./content")
+	builder := docs.NewCachedBuilder("./contents")
 	treeHandler := handler.NewTreeHandler(builder)
-	contentHandler := handler.NewContentHandler("./content")
+	contentHandler := handler.NewContentHandler("./contents")
 	searchHandler := handler.NewSearchHandler(builder)
 
 	r.GET("/api/tree", treeHandler.GetTree)
-	r.GET("/api/content/*path", contentHandler.GetContent)
+	r.GET("/api/contents/*path", contentHandler.GetContent)
+	r.GET("/api/content/*path", contentHandler.GetContent) // 互換用エイリアス
 	r.GET("/api/memo/content/*path", contentHandler.GetContent) // 過去のマークダウン互換用エイリアス
 	r.GET("/api/search", searchHandler.GetSearch)
 

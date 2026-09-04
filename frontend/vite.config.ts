@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
         '^/.*\\.(png|jpe?g|gif|svg|webp|ico)$': {
           target: env.VITE_API_TARGET || 'http://backend:8080',
           changeOrigin: true,
-          rewrite: (path) => `/api/content${path}`,
+          rewrite: (path) => `/api/contents${path}`,
         }
       },
     },
