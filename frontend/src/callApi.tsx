@@ -10,7 +10,7 @@ export interface DocumentNode {
 }
 
 
-// GET /api/content/*path でMarkdownをHTMLに変換して取得するカスタムフック
+// GET /api/contents/*path でMarkdownをHTMLに変換して取得するカスタムフック
 export function useFetchContent(urlPath: string) {
     const [content, setContent] = useState<string>('')
     const [loading, setLoading] = useState(true)
@@ -19,10 +19,10 @@ export function useFetchContent(urlPath: string) {
     useEffect(() => {
         if (!urlPath) return
         setLoading(true)
-        fetch(`/api/content${urlPath}`)
+        fetch(`/api/contents${urlPath}`)
             .then(res => res.json())
-            .then((data: { content: string }) => {
-                setContent(data.content)
+            .then((data: { contents: string }) => {
+                setContent(data.contents)
             })
             .catch(err => {
                 console.error('Failed to fetch content:', err)
