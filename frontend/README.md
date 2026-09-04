@@ -1,32 +1,157 @@
-# React + TypeScript + Vite
+# ドキュメントコンテンツ管理規則 (`content/`)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+本リポジトリで管理・表示する技術ドキュメント（Markdownファイルおよび静的アセット）の格納規則と記述フォーマットに関する仕様です。
 
-Currently, two official plugins are available:
+ドキュメントファイルは、バックエンドのコンテンツ管理ディレクトリ（`backend/content/`）配下に配置します。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 1. ディレクトリ構造の概要
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+コンテンツはカテゴリごとに階層化して管理します。各ディレクトリおよびMarkdownファイルは、メタデータによって表示名や並び順を制御できます。
 
-## Expanding the Oxlint configuration
+### ディレクトリ構成例
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```text
+backend/content/
+├── git/                               # 大カテゴリ（第1階層）
+│   ├── _category.yml                  # カテゴリのメタデータ
+│   ├── default/                       # サブカテゴリ（第2階層）
+│   │   ├── _category.yml              # （任意）サブカテゴリのメタデータ
+│   │   └── default.md                 # 記事ファイル
+│   └── branch/
+│       └── branch.md
+├── linux/
+│   ├── _category.yml
+│   └── default/
+│       └── default.md
+└── test/
+    ├── _category.yml
+    └── hoge/
+        ├── hoge.md
+        └── image/                     # 静的画像配置ディレクトリ
+            └── sample.png
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## 2. ディレクトリ設定規則 (`_category.yml`)
+
+サイドバーなどのツリー表示において、ディレクトリの表示名と並び順をカスタマイズするために、ディレクトリ直下に `_category.yml` を配置します。
+
+### ファイル形式
+YAML形式で記述します。
+
+```yaml
+label: "Git"
+order: 10
+```
+
+### 設定項目
+
+| キー | 型 | 必須 | 説明 |
+| :--- | :--- | :--- | :--- |
+| `label` | string | 任意 | サイドバーに表示するカテゴリ名。省略時はディレクトリ名がそのまま表示名になります。 |
+| `order` | integer | 任意 | 同一階層内での並び順（昇順）。数値が小さいものが上位に表示されます。省略時は末尾（最下位）に配置されます。 |
+
+> [!NOTE]
+> `_category.yml` が存在しないディレクトリ、またはパースエラーとなった場合は、フォールバックとしてディレクトリ名がそのまま表示名（`DisplayName`）になり、順序はデフォルト値（末尾）として扱われます。
+
+---
+
+## 3. Markdownファイル規則 (`.md`)
+
+記事は拡張子 `.md`（大文字小文字不問）のMarkdownファイルとして作成します。
+
+### 3.1. Frontmatter（記事メタデータ）
+
+ファイルの先頭に `---` で囲んだYAML形式のFrontmatterを記述することで、記事のタイトルや並び順を指定できます。
+
+```markdown
+---
+title: "ブランチの命名規則"
+order: 20
+---
+
+# ブランチの命名規則
+本文ここから...
+```
+
+### 設定項目
+
+| キー | 型 | 必須 | 説明 |
+| :--- | :--- | :--- | :--- |
+| `title` | string | 任意 | サイドバーや検索結果に表示される記事のタイトル。省略時はファイル名（拡張子除く）が表示名になります。 |
+| `order` | integer | 任意 | 同一ディレクトリ内での並び順（昇順）。数値が小さいものが上位に表示されます。省略時は末尾に配置されます。 |
+
+> [!NOTE]
+> - Frontmatterは必ず**ファイルの1行目**から `---` で開始してください。
+> - Frontmatter内に記述されたメタデータは、記事本文のレンダリング時には自動的に除去され、本文には表示されません。
+
+### 3.2. Markdown記法と機能
+
+本文は **GitHub Flavored Markdown (GFM)** に準拠しています。
+
+- 見出し (`#`, `##`, `###` など)
+- リスト（箇条書き、番号付きリスト）
+- テーブル（表組み）
+- コードブロック（構文ハイライト）
+- チェックボックス（タスクリスト）
+- 打ち消し線 (`~~text~~`)
+
+### 3.3. 脚注記法（Footnotes）
+
+goldmark Footnote 拡張に対応しており、参考文献や注釈を脚注形式で記述できます。
+
+```markdown
+本文中の文章です[^1]。別の注釈も記述できます[^note]。
+
+[^1]: @Hashimoto-Noriaki, 「Git ブランチの命名規則」, Qiita
+[^note]: 補足説明の内容をここに記載します。
+```
+
+- 本文の `[^識別子]` が上付きリンクとなり、文末に脚注リストが自動生成されます。
+
+---
+
+## 4. 静的アセット（画像など）の配置規則
+
+記事内で使用する画像などの静的アセットは、記事ファイルと同階層またはサブディレクトリ（例: `image/` ディレクトリ）に配置します。
+
+### 4.1. 対応しているファイル形式
+バックエンドのコンテンツAPIで配信可能な静的アセットの拡張子:
+- `.png`
+- `.jpg` / `.jpeg`
+- `.gif`
+- `.svg`
+- `.webp`
+- `.ico`
+
+### 4.2. Markdown内での画像参照方法
+
+Markdown本文で画像を挿入する際は、以下のいずれかのパス形式を使用します。
+
+#### パス指定の例（`backend/content/test/hoge/image/sample.png` の場合）
+
+1. **コンテンツAPIパス指定（推奨）:**
+   ```markdown
+   ![サンプル画像](/api/content/test/hoge/image/sample.png)
+   ```
+2. **ルート相対パス指定（開発環境プロキシ対応）:**
+   ```markdown
+   ![サンプル画像](/test/hoge/image/sample.png)
+   ```
+3. **過去互換パス:**
+   ```markdown
+   ![サンプル画像](/api/memo/content/test/hoge/image/sample.png)
+   ```
+
+---
+
+## 5. 並び順（ソート）と検索の仕様
+
+1. **ソート仕様**
+   - 同一ディレクトリ内のファイルおよびサブディレクトリは、`order` 値の昇順（1, 2, 3...）で整列されます。
+   - `order` が指定されていない要素同士は最下位にまとまります。
+2. **検索対象**
+   - ヘッダーの検索機能では、Frontmatterの `title`（記事タイトル）および本文テキストが全文検索の対象となります。
