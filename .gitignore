@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 my-app.code-workspace
 .env
+
+# Documentation contents (managed locally)
+backend/contents/*
+!backend/contents/.gitkeep
