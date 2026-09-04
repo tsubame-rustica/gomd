@@ -1,57 +1,73 @@
 import { useEffect, useState } from 'react'
 
-interface Post {
-    title: string;
-    href: string;
-    key: string;
+// バックエンドの DocumentNode に対応する型
+export interface DocumentNode {
+    displayName: string
+    urlPath: string
+    order: number
+    isFile: boolean
+    children: DocumentNode[]
 }
 
-interface Category {
-    title: string;
-    href: string;
-    key: string;
-}
 
-function fetchPostsByCategory(category: string): { posts: Post[] } {
-    const [posts, setPosts] = useState<Post[]>([]);
+// GET /api/content/*path でMarkdownをHTMLに変換して取得するカスタムフック
+export function useFetchContent(urlPath: string) {
+    const [content, setContent] = useState<string>('')
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-     fetch(`/api/getPosts/${category}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.result) {
-                setPosts(data.result);
-            } else {
-                console.error("No posts found for category:", category);
-            }
-        })
-        .catch(err => {
-            console.error("Fetch error:", err);
-        });
-    }, [posts]);
+        if (!urlPath) return
+        setLoading(true)
+        fetch(`/api/content${urlPath}`)
+            .then(res => res.json())
+            .then((data: { content: string }) => {
+                setContent(data.content)
+            })
+            .catch(err => {
+                console.error('Failed to fetch content:', err)
+                setError('記事の取得に失敗しました')
+            })
+            .finally(() => setLoading(false))
+    }, [urlPath])
 
-    return { posts };
+    return { content, loading, error }
 }
 
-function fetchCategories(): { categories: Category[] } {
-    const [categories, setCategories] = useState<Category[]>([]);
+export interface SearchResult {
+    urlPath: string
+    displayName: string
+    snippet: string
+}
+
+export function useSearch(query: string) {
+    const [results, setResults] = useState<SearchResult[]>([])
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-     fetch(`/api/getCategories`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.result) {
-                setCategories(data.result);
-            } else {
-                console.error("No categories found");
-            }
-        })
-        .catch(err => {
-            console.error("Fetch error:", err);
-        });
-    }, [categories]);
+        if (!query.trim()) {
+            setResults([])
+            return
+        }
 
-    return { categories };
+        setLoading(true)
+        // debounce的に少し待つのは呼び出し側で制御するか、ここでsetTimeoutを使う
+        const timer = setTimeout(() => {
+            fetch(`/api/search?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    setResults(data.results || [])
+                })
+                .catch(err => {
+                    console.error('Search failed:', err)
+                    setError('検索に失敗しました')
+                })
+                .finally(() => setLoading(false))
+        }, 300) // 300msデバウンス
+
+        return () => clearTimeout(timer)
+    }, [query])
+
+    return { results, loading, error }
 }
-
-export { fetchPostsByCategory, fetchCategories }
