@@ -21,8 +21,8 @@ export function useFetchContent(urlPath: string) {
         setLoading(true)
         fetch(`/api/contents${urlPath}`)
             .then(res => res.json())
-            .then((data: { content?: string; contents?: string }) => {
-                setContent(data.contents ?? data.content ?? '')
+            .then((data: { contents: string }) => {
+                setContent(data.contents)
             })
             .catch(err => {
                 console.error('Failed to fetch content:', err)

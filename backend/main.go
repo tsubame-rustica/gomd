@@ -33,8 +33,6 @@ func main() {
 
 	r.GET("/api/tree", treeHandler.GetTree)
 	r.GET("/api/contents/*path", contentHandler.GetContent)
-	r.GET("/api/content/*path", contentHandler.GetContent) // 互換用エイリアス
-	r.GET("/api/memo/content/*path", contentHandler.GetContent) // 過去のマークダウン互換用エイリアス
 	r.GET("/api/search", searchHandler.GetSearch)
 
 	// 8080ポートでサーバーを起動

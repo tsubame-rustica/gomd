@@ -77,7 +77,6 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"content":  buf.String(),
 		"contents": buf.String(),
 	})
 }

@@ -141,10 +141,6 @@ Markdown本文で画像を挿入する際は、以下のいずれかのパス形
    ```markdown
    ![サンプル画像](/test/hoge/image/sample.png)
    ```
-3. **過去互換パス:**
-   ```markdown
-   ![サンプル画像](/api/memo/content/test/hoge/image/sample.png)
-   ```
 
 ---
 
