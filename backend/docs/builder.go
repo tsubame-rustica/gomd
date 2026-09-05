@@ -51,34 +51,49 @@ func BuildNode(path, rootPath string) (*DocumentNode, error) {
 		entryPath := filepath.Join(path, entry.Name())
 
 		if entry.IsDir() {
+			// 第一階層（rootPath直下）のディレクトリは _category.yml が必須
+			if path == rootPath {
+				categoryPath := filepath.Join(entryPath, "_category.yml")
+				if _, err := os.Stat(categoryPath); err != nil {
+					// _category.yml が存在しない場合はスキップ
+					continue
+				}
+			}
+
 			// サブディレクトリ → 再帰的に BuildNode
 			child, err := BuildNode(entryPath, rootPath)
 			if err != nil {
 				return nil, err
 			}
+
+			// 第二階層以降のディレクトリで、子要素（.mdなど）を持たない空フォルダ（画像専用フォルダなど）はスキップ
+			if path != rootPath && len(child.Children) == 0 {
+				continue
+			}
+
 			node.Children = append(node.Children, child)
 
 		} else if strings.ToLower(filepath.Ext(entry.Name())) == ".md" {
-			// .md ファイル → Frontmatter を読んでノード生成
+			// Frontmatterをパース。メタ情報（Title）がないファイルはスキップ
+			meta, err := ParseFrontmatter(entryPath)
+			if err != nil || strings.TrimSpace(meta.Title) == "" {
+				continue
+			}
+
 			rel, _ := filepath.Rel(rootPath, entryPath)
 			fileURLPath := "/" + filepath.ToSlash(rel)
 
 			fileNode := &DocumentNode{
 				Path:        entryPath,
 				URLPath:     fileURLPath,
-				DisplayName: strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name())), // フォールバック
+				DisplayName: meta.Title,
 				Order:       defaultOrder,
 				IsFile:      true,
 				Children:    []*DocumentNode{},
 			}
 
-			if meta, err := ParseFrontmatter(entryPath); err == nil {
-				if meta.Title != "" {
-					fileNode.DisplayName = meta.Title
-				}
-				if meta.Order != 0 {
-					fileNode.Order = meta.Order
-				}
+			if meta.Order != 0 {
+				fileNode.Order = meta.Order
 			}
 
 			node.Children = append(node.Children, fileNode)

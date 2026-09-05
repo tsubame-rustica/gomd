@@ -213,3 +213,93 @@ func TestBuildTree_IgnoresNonMdFiles(t *testing.T) {
 		}
 	}
 }
+
+// 第一階層で _category.yml がないディレクトリはツリーに含まれないこと
+func TestBuildTree_SkipsRootFolderWithoutCategoryYAML(t *testing.T) {
+	root := setupTestDir(t)
+	noCatDir := filepath.Join(root, "nocategory")
+	mustMkdir(t, noCatDir)
+	mustWriteFile(t, filepath.Join(noCatDir, "test.md"), "---\ntitle: \"テスト\"\norder: 1\n---\n")
+
+	node, err := docs.BuildTree(root)
+	if err != nil {
+		t.Fatalf("BuildTree: %v", err)
+	}
+
+	for _, child := range node.Children {
+		if !child.IsFile && child.DisplayName == "nocategory" {
+			t.Errorf("_category.yml のない第一階層ディレクトリが含まれている: %s", child.DisplayName)
+		}
+	}
+}
+
+// 第二階層は _category.yml がなくても有効な .md があればツリーに含まれること
+func TestBuildTree_AllowsSubfolderWithoutCategoryYAML(t *testing.T) {
+	root := setupTestDir(t)
+	subDir := filepath.Join(root, "git", "subtopic")
+	mustMkdir(t, subDir)
+	mustWriteFile(t, filepath.Join(subDir, "detail.md"), "---\ntitle: \"詳細\"\norder: 1\n---\n")
+
+	node, err := docs.BuildTree(root)
+	if err != nil {
+		t.Fatalf("BuildTree: %v", err)
+	}
+
+	var gitNode *docs.DocumentNode
+	for _, child := range node.Children {
+		if !child.IsFile && child.DisplayName == "Git" {
+			gitNode = child
+			break
+		}
+	}
+	if gitNode == nil {
+		t.Fatal("Gitカテゴリが見つからない")
+	}
+
+	var subNode *docs.DocumentNode
+	for _, child := range gitNode.Children {
+		if !child.IsFile && child.DisplayName == "subtopic" {
+			subNode = child
+			break
+		}
+	}
+	if subNode == nil {
+		t.Fatal("第二階層のサブディレクトリが見つからない")
+	}
+	if len(subNode.Children) != 1 || subNode.Children[0].DisplayName != "詳細" {
+		t.Errorf("第二階層の子ファイルが正しくない: %+v", subNode.Children)
+	}
+}
+
+// メタ情報（Frontmatter または title）がない .md ファイルはツリーに含まれないこと
+func TestBuildTree_SkipsMdFilesWithoutMetadata(t *testing.T) {
+	root := setupTestDir(t)
+	gitDir := filepath.Join(root, "git")
+	// Frontmatterなし
+	mustWriteFile(t, filepath.Join(gitDir, "no_frontmatter.md"), "# タイトルのみ\n本文\n")
+	// Frontmatterありだがtitleが空
+	mustWriteFile(t, filepath.Join(gitDir, "empty_title.md"), "---\norder: 10\n---\n本文\n")
+
+	node, err := docs.BuildTree(root)
+	if err != nil {
+		t.Fatalf("BuildTree: %v", err)
+	}
+
+	var gitNode *docs.DocumentNode
+	for _, child := range node.Children {
+		if !child.IsFile && child.DisplayName == "Git" {
+			gitNode = child
+			break
+		}
+	}
+	if gitNode == nil {
+		t.Fatal("Gitカテゴリが見つからない")
+	}
+
+	for _, child := range gitNode.Children {
+		if child.DisplayName == "no_frontmatter" || child.DisplayName == "empty_title" {
+			t.Errorf("メタ情報のない .md ファイルがツリーに含まれている: %s", child.DisplayName)
+		}
+	}
+}
+
