@@ -233,8 +233,8 @@ func TestBuildTree_SkipsRootFolderWithoutCategoryYAML(t *testing.T) {
 	}
 }
 
-// 第二階層は _category.yml がなくても有効な .md があればツリーに含まれること
-func TestBuildTree_AllowsSubfolderWithoutCategoryYAML(t *testing.T) {
+// 第二階層のサブディレクトリはツリーに含まれないこと（第一階層直下のmdのみ読み込む）
+func TestBuildTree_SkipsSubfolders(t *testing.T) {
 	root := setupTestDir(t)
 	subDir := filepath.Join(root, "git", "subtopic")
 	mustMkdir(t, subDir)
@@ -256,18 +256,10 @@ func TestBuildTree_AllowsSubfolderWithoutCategoryYAML(t *testing.T) {
 		t.Fatal("Gitカテゴリが見つからない")
 	}
 
-	var subNode *docs.DocumentNode
 	for _, child := range gitNode.Children {
-		if !child.IsFile && child.DisplayName == "subtopic" {
-			subNode = child
-			break
+		if !child.IsFile {
+			t.Errorf("第二階層のサブディレクトリがツリーに含まれている: %s", child.DisplayName)
 		}
-	}
-	if subNode == nil {
-		t.Fatal("第二階層のサブディレクトリが見つからない")
-	}
-	if len(subNode.Children) != 1 || subNode.Children[0].DisplayName != "詳細" {
-		t.Errorf("第二階層の子ファイルが正しくない: %+v", subNode.Children)
 	}
 }
 

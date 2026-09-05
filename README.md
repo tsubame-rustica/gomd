@@ -14,24 +14,23 @@
 
 ```text
 backend/contents/
-├── git/                               # 大カテゴリ（第1階層）
-│   ├── _category.yml                  # カテゴリのメタデータ
-│   ├── default/                       # サブカテゴリ（第2階層）
-│   │   ├── _category.yml              # （任意）サブカテゴリのメタデータ
-│   │   └── default.md                 # 記事ファイル
-│   └── branch/
-│       └── branch.md
+├── git/                               # カテゴリ（第1階層）
+│   ├── _category.yml                  # カテゴリのメタデータ（必須）
+│   ├── branch.md                      # 記事ファイル
+│   └── default.md
 ├── linux/
 │   ├── _category.yml
-│   └── default/
-│       └── default.md
+│   └── default.md
 └── test/
     ├── _category.yml
-    └── hoge/
-        ├── hoge.md
-        └── image/                     # 静的画像配置ディレクトリ
-            └── sample.png
+    ├── hoge.md
+    └── image/                         # （任意）静的画像配置ディレクトリ
+        └── sample.png
 ```
+
+- **第一階層**: カテゴリ単位でフォルダを作成し、直下に `_category.yml` を配置します（必須）。
+- **記事ファイル**: 各カテゴリフォルダの**直下**に `.md` ファイルを配置します（サブカテゴリフォルダは作成しません）。
+- **画像アセット**: 記事内で使用する画像は、各カテゴリフォルダ配下のサブディレクトリ（`image/` など）に配置可能です。
 
 ---
 
