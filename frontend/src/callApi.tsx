@@ -10,18 +10,42 @@ export interface DocumentNode {
 }
 
 
+// 記事HTMLコンテンツのインメモリキャッシュ (urlPath -> HTML文字列)
+const contentCache = new Map<string, string>()
+
 // GET /api/contents/*path でMarkdownをHTMLに変換して取得するカスタムフック
 export function useFetchContent(urlPath: string) {
-    const [content, setContent] = useState<string>('')
-    const [loading, setLoading] = useState(true)
+    const [content, setContent] = useState<string>(() => contentCache.get(urlPath) ?? '')
+    const [loading, setLoading] = useState<boolean>(() => !urlPath || !contentCache.has(urlPath))
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        if (!urlPath) return
+        if (!urlPath) {
+            setContent('')
+            setLoading(false)
+            return
+        }
+
+        // キャッシュに既に存在する場合は fetch せずに即時反映
+        const cached = contentCache.get(urlPath)
+        if (cached !== undefined) {
+            setContent(cached)
+            setLoading(false)
+            setError(null)
+            return
+        }
+
         setLoading(true)
+        setError(null)
         fetch(`/api/contents${urlPath}`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`)
+                }
+                return res.json()
+            })
             .then((data: { contents: string }) => {
+                contentCache.set(urlPath, data.contents)
                 setContent(data.contents)
             })
             .catch(err => {
