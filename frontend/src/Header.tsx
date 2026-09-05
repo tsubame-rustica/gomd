@@ -35,13 +35,13 @@ function CategoryList() {
     const categories = tree?.children.filter(node => !node.isFile) ?? []
 
     return (
-        <div className="flex flex-row items-center px-6 py-2 bg-neutral-800">
-            <ul className="flex flex-row gap-4">
-                <li key="home">
+        <div className="flex flex-row items-center justify-between px-6 py-2 bg-neutral-800 gap-4">
+            <ul className="flex flex-row items-center gap-4 overflow-x-auto whitespace-nowrap min-w-0 flex-1 py-1 category-scrollbar">
+                <li key="home" className="shrink-0">
                     <Link to="/" className="text-white hover:underline">Home</Link>
                 </li>
                 {categories.map(category => (
-                    <li key={category.urlPath}>
+                    <li key={category.urlPath} className="shrink-0">
                         {/* order が最小のファイルにリンク */}
                         <Link
                             to={findFirstFile(category)?.urlPath ?? category.urlPath}
@@ -52,7 +52,9 @@ function CategoryList() {
                     </li>
                 ))}
             </ul>
-            <SearchBox />
+            <div className="shrink-0">
+                <SearchBox />
+            </div>
         </div>
     )
 }
