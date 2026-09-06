@@ -23,7 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 my-app.code-workspace
-.env
+.env*
+!.env.example
 
 # Documentation contents (managed locally)
 backend/contents/*

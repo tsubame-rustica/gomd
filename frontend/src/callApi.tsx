@@ -10,6 +10,35 @@ export interface DocumentNode {
 }
 
 
+// バックエンドの API ベース URL (末尾のスラッシュを除去)
+export const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+
+// HTML内の画像パスを API_BASE 付きの Cloud Run エンドポイントに解決する関数
+export function resolveContentHtml(html: string, mdUrlPath: string): string {
+    const lastSlash = mdUrlPath.lastIndexOf('/')
+    const baseDir = lastSlash > 0 ? mdUrlPath.slice(0, lastSlash) : ''
+
+    return html.replace(/<img\s+([^>]*?)src=["']([^"']+)["']([^>]*?)>/gi, (match, before, src, after) => {
+        // 絶対URL (http://, https://, //) や data URI はそのまま
+        if (/^(https?:|\/\/|data:)/i.test(src)) {
+            return match
+        }
+
+        let resolvedPath: string
+        if (src.startsWith('/api/contents/')) {
+            resolvedPath = src
+        } else if (src.startsWith('/')) {
+            resolvedPath = `/api/contents${src}`
+        } else {
+            const cleanPath = `${baseDir}/${src}`.replace(/\/\.\//g, '/')
+            resolvedPath = `/api/contents${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`
+        }
+
+        const fullSrc = API_BASE ? `${API_BASE}${resolvedPath}` : resolvedPath
+        return `<img ${before}src="${fullSrc}"${after}>`
+    })
+}
+
 // 記事HTMLコンテンツのインメモリキャッシュ (urlPath -> HTML文字列)
 const contentCache = new Map<string, string>()
 
@@ -37,7 +66,7 @@ export function useFetchContent(urlPath: string) {
 
         setLoading(true)
         setError(null)
-        fetch(`/api/contents${urlPath}`)
+        fetch(`${API_BASE}/api/contents${urlPath}`)
             .then(res => {
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}`)
@@ -45,8 +74,9 @@ export function useFetchContent(urlPath: string) {
                 return res.json()
             })
             .then((data: { contents: string }) => {
-                contentCache.set(urlPath, data.contents)
-                setContent(data.contents)
+                const resolvedHtml = resolveContentHtml(data.contents, urlPath)
+                contentCache.set(urlPath, resolvedHtml)
+                setContent(resolvedHtml)
             })
             .catch(err => {
                 console.error('Failed to fetch content:', err)
@@ -78,7 +108,7 @@ export function useSearch(query: string) {
         setLoading(true)
         // debounce的に少し待つのは呼び出し側で制御するか、ここでsetTimeoutを使う
         const timer = setTimeout(() => {
-            fetch(`/api/search?q=${encodeURIComponent(query)}`)
+            fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`)
                 .then(res => res.json())
                 .then(data => {
                     setResults(data.results || [])

@@ -6,7 +6,7 @@ import Post from './pages/Post'
 
 function App() {
     return (
-        <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
             <TreeProvider>
                 <div className="flex flex-col h-svh overflow-hidden">
                     <Header />
