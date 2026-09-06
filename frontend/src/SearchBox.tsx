@@ -22,7 +22,7 @@ export default function SearchBox() {
     const showDropdown = isFocused && query.trim().length > 0
 
     return (
-        <div className="relative ml-auto mr-4 flex items-center" ref={containerRef}>
+        <div className="relative flex items-center shrink-0" ref={containerRef}>
             <div className="relative">
                 <input
                     type="text"

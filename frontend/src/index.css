@@ -81,3 +81,27 @@ code::after,
 code::before {
   content: none;
 }
+
+/* ヘッダーカテゴリー一覧用のスリムなスクロールバー */
+.category-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.category-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.category-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.category-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+}
+
+.category-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+

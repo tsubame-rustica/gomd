@@ -49,6 +49,7 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 		".gif": true, ".svg": true, ".webp": true, ".ico": true,
 	}
 	if staticExts[ext] {
+		c.Header("Cache-Control", "public, max-age=86400, s-maxage=604800")
 		c.File(cleanPath)
 		return
 	}
@@ -76,6 +77,7 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 		return
 	}
 
+	c.Header("Cache-Control", "public, max-age=300, s-maxage=3600")
 	c.JSON(http.StatusOK, gin.H{
 		"contents": buf.String(),
 	})

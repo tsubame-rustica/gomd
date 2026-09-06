@@ -10,85 +10,110 @@ import (
 
 const defaultOrder = math.MaxInt
 
+// BuildTree は rootPath（contents/）配下の第一階層ディレクトリをカテゴリとして走査し、
+// カテゴリ直下の .md ファイルのみを階層ツリーとして構築します（第二階層のサブディレクトリは含めません）。
 func BuildTree(rootPath string) (*DocumentNode, error) {
-	return BuildNode(rootPath, rootPath)
-}
-
-func BuildNode(path, rootPath string) (*DocumentNode, error) {
-	// URLPath: rootPath からの相対パスをスラッシュ区切りに変換
-	rel, _ := filepath.Rel(rootPath, path)
-	var urlPath string
-	if rel == "." {
-		urlPath = "/" // ルートノード
-	} else {
-		urlPath = "/" + filepath.ToSlash(rel)
-	}
-
-	node := &DocumentNode{
-		Path:        path,
-		URLPath:     urlPath,
-		DisplayName: filepath.Base(path), // フォールバック: ディレクトリ名
+	rootNode := &DocumentNode{
+		Path:        rootPath,
+		URLPath:     "/",
+		DisplayName: filepath.Base(rootPath),
 		Order:       defaultOrder,
 		IsFile:      false,
 		Children:    []*DocumentNode{},
 	}
 
-	// _category.yml を読んで DisplayName と Order を上書き
-	if meta, err := ParseCategoryYAML(path); err == nil {
-		if meta.Category != "" {
-			node.DisplayName = meta.Category
-		}
-		node.Order = meta.Order
-	}
-
-	// ディレクトリ内のエントリを走査
-	entries, err := os.ReadDir(path)
+	entries, err := os.ReadDir(rootPath)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, entry := range entries {
-		entryPath := filepath.Join(path, entry.Name())
+		if !entry.IsDir() {
+			continue
+		}
 
-		if entry.IsDir() {
-			// サブディレクトリ → 再帰的に BuildNode
-			child, err := BuildNode(entryPath, rootPath)
-			if err != nil {
-				return nil, err
+		categoryPath := filepath.Join(rootPath, entry.Name())
+
+		// 第一階層のカテゴリフォルダには _category.yml が必須
+		meta, err := ParseCategoryYAML(categoryPath)
+		if err != nil {
+			continue
+		}
+
+		displayName := entry.Name()
+		if meta.Category != "" {
+			displayName = meta.Category
+		}
+
+		order := defaultOrder
+		if meta.Order != 0 {
+			order = meta.Order
+		}
+
+		categoryNode := &DocumentNode{
+			Path:        categoryPath,
+			URLPath:     "/" + filepath.ToSlash(entry.Name()),
+			DisplayName: displayName,
+			Order:       order,
+			IsFile:      false,
+			Children:    []*DocumentNode{},
+		}
+
+		// 第一階層ディレクトリ直下の .md ファイルのみを走査
+		catEntries, err := os.ReadDir(categoryPath)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, catEntry := range catEntries {
+			// 第二階層ディレクトリはツリーに含めない
+			if catEntry.IsDir() {
+				continue
 			}
-			node.Children = append(node.Children, child)
 
-		} else if strings.ToLower(filepath.Ext(entry.Name())) == ".md" {
-			// .md ファイル → Frontmatter を読んでノード生成
-			rel, _ := filepath.Rel(rootPath, entryPath)
+			if strings.ToLower(filepath.Ext(catEntry.Name())) != ".md" {
+				continue
+			}
+
+			filePath := filepath.Join(categoryPath, catEntry.Name())
+			fmeta, err := ParseFrontmatter(filePath)
+			if err != nil || strings.TrimSpace(fmeta.Title) == "" {
+				// メタ情報（Frontmatter または title）がないファイルはスキップ
+				continue
+			}
+
+			rel, _ := filepath.Rel(rootPath, filePath)
 			fileURLPath := "/" + filepath.ToSlash(rel)
 
+			fileOrder := defaultOrder
+			if fmeta.Order != 0 {
+				fileOrder = fmeta.Order
+			}
+
 			fileNode := &DocumentNode{
-				Path:        entryPath,
+				Path:        filePath,
 				URLPath:     fileURLPath,
-				DisplayName: strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name())), // フォールバック
-				Order:       defaultOrder,
+				DisplayName: fmeta.Title,
+				Order:       fileOrder,
 				IsFile:      true,
 				Children:    []*DocumentNode{},
 			}
 
-			if meta, err := ParseFrontmatter(entryPath); err == nil {
-				if meta.Title != "" {
-					fileNode.DisplayName = meta.Title
-				}
-				if meta.Order != 0 {
-					fileNode.Order = meta.Order
-				}
-			}
-
-			node.Children = append(node.Children, fileNode)
+			categoryNode.Children = append(categoryNode.Children, fileNode)
 		}
+
+		// ファイルを Order 昇順でソート
+		slices.SortFunc(categoryNode.Children, func(a, b *DocumentNode) int {
+			return a.Order - b.Order
+		})
+
+		rootNode.Children = append(rootNode.Children, categoryNode)
 	}
 
-	// Order 昇順でソート
-	slices.SortFunc(node.Children, func(a, b *DocumentNode) int {
+	// カテゴリを Order 昇順でソート
+	slices.SortFunc(rootNode.Children, func(a, b *DocumentNode) int {
 		return a.Order - b.Order
 	})
 
-	return node, nil
+	return rootNode, nil
 }

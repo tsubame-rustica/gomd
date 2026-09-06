@@ -24,5 +24,6 @@ func (h *TreeHandler) GetTree(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ツリーの構築に失敗しました"})
 		return
 	}
+	c.Header("Cache-Control", "public, max-age=60, s-maxage=300")
 	c.JSON(http.StatusOK, tree)
 }
