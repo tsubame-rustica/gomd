@@ -19,10 +19,6 @@ type DocumentNode struct {
 	Children    []*DocumentNode `json:"children"`
 }
 
-type HierarchyBuilder interface {
-	BuildTree(rootPath string) (*DocumentNode, error)
-}
-
 type SearchResult struct {
 	URLPath     string `json:"urlPath"`
 	DisplayName string `json:"displayName"`

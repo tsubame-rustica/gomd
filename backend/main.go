@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"backend/docs"
@@ -12,10 +13,17 @@ import (
 func main() {
 	r := gin.Default()
 
-	// CORS設定（環境変数 CORS_ALLOW_ORIGIN があれば指定、なければ *）
+	// CORS設定（環境変数 CORS_ALLOW_ORIGIN があれば指定）
 	allowedOrigin := os.Getenv("CORS_ALLOW_ORIGIN")
 	if allowedOrigin == "" {
-		allowedOrigin = "*"
+		if gin.Mode() == gin.DebugMode {
+			// 開発時のみ: Vite のデフォルトポートへのフォールバック
+			allowedOrigin = "http://localhost:5173"
+			log.Println("[WARN] CORS_ALLOW_ORIGIN が未設定です。デバッグモードのため http://localhost:5173 を使用します。")
+		} else {
+			// 本番環境では CORS_ALLOW_ORIGIN の設定必須
+			log.Fatal("[ERROR] 本番環境では CORS_ALLOW_ORIGIN を必ず設定してください。")
+		}
 	}
 
 	r.Use(func(c *gin.Context) {

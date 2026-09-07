@@ -36,7 +36,11 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 	requestedPath := filepath.Join(absRoot, filepath.FromSlash(urlPath))
 	cleanPath := filepath.Clean(requestedPath)
 
-	if !strings.HasPrefix(cleanPath, absRoot) {
+	// パストラバーサル対策: absRoot 自体または absRoot/ で始まるパスのみ許可
+	// absRoot だけの前方一致だと /contents-evil/ のような隣接ディレクトリを通過させてしまうため
+	// filepath.Separator を付与して厳密に一致させる
+	rootWithSep := absRoot + string(filepath.Separator)
+	if cleanPath != absRoot && !strings.HasPrefix(cleanPath, rootWithSep) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "アクセスが許可されていません"})
 		return
 	}
@@ -70,7 +74,11 @@ func (h *ContentHandler) GetContent(c *gin.Context) {
 	source = stripFrontmatter(source)
 
 	// Markdown → HTML 変換（GFM + 脚注）
-	md := goldmark.New(goldmark.WithExtensions(extension.GFM, extension.Footnote))
+	// デフォルトで Markdown 中の生 HTML タグはエスケープされる（XSS防止）。
+	// html.WithUnsafe() を呼ばないことで安全な設定を維持する。
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.GFM, extension.Footnote),
+	)
 	var buf bytes.Buffer
 	if err := md.Convert(source, &buf); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "変換エラー"})

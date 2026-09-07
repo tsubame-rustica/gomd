@@ -1,28 +1,28 @@
 package docs
 
 import (
-	"os"
 	"strings"
 )
 
-// SearchTree はツリー全体を走査してキーワードにマッチする記事を返します
-func SearchTree(node *DocumentNode, query string) []SearchResult {
+// SearchTree はツリー全体を走査してキーワードにマッチする記事を返します。
+// contents はファイルパス→Markdown本文のキャッシュマップで、ディスクI/Oを回避します。
+func SearchTree(node *DocumentNode, query string, contents map[string]string) []SearchResult {
 	if query == "" {
 		return nil
 	}
 	query = strings.ToLower(query)
 	var results []SearchResult
-	searchNode(node, query, &results)
+	searchNode(node, query, contents, &results)
 	return results
 }
 
-func searchNode(node *DocumentNode, query string, results *[]SearchResult) {
+func searchNode(node *DocumentNode, query string, contents map[string]string, results *[]SearchResult) {
 	if node == nil {
 		return
 	}
 
 	if node.IsFile {
-		matched, snippet := checkMatch(node, query)
+		matched, snippet := checkMatch(node, query, contents)
 		if matched {
 			*results = append(*results, SearchResult{
 				URLPath:     node.URLPath,
@@ -33,47 +33,52 @@ func searchNode(node *DocumentNode, query string, results *[]SearchResult) {
 	}
 
 	for _, child := range node.Children {
-		searchNode(child, query, results)
+		searchNode(child, query, contents, results)
 	}
 }
 
-func checkMatch(node *DocumentNode, query string) (bool, string) {
+func checkMatch(node *DocumentNode, query string, contents map[string]string) (bool, string) {
 	// タイトルでマッチするかチェック
 	if strings.Contains(strings.ToLower(node.DisplayName), query) {
-		return true, "" // タイトルマッチの場合はスニペットなし（または適当なスニペット）
+		return true, "" // タイトルマッチの場合はスニペットなし
 	}
 
-	// 本文を読み込んでマッチするかチェック
-	data, err := os.ReadFile(node.Path)
-	if err != nil {
+	// キャッシュから本文を取得（ディスクI/Oなし）
+	content, ok := contents[node.Path]
+	if !ok {
 		return false, ""
 	}
-	
-	content := string(data)
+
 	contentLower := strings.ToLower(content)
-	idx := strings.Index(contentLower, query)
-	if idx != -1 {
-		// スニペットを抽出 (前後30文字程度)
-		start := idx - 30
-		if start < 0 {
-			start = 0
-		}
-		end := idx + len(query) + 30
-		if end > len(content) {
-			end = len(content)
-		}
-		
-		snippet := content[start:end]
-		// 改行をスペースに置換
-		snippet = strings.ReplaceAll(snippet, "\n", " ")
-		if start > 0 {
-			snippet = "..." + snippet
-		}
-		if end < len(content) {
-			snippet = snippet + "..."
-		}
-		return true, snippet
+	byteIdx := strings.Index(contentLower, query)
+	if byteIdx == -1 {
+		return false, ""
 	}
 
-	return false, ""
+	// UTF-8 安全なスニペット抽出:
+	// byteIdx はバイト位置のため、そのままスライスすると日本語などマルチバイト文字の
+	// 途中でスライスして不正な文字列になる恐れがある。rune 変換して文字境界で切り出す。
+	runes := []rune(content)
+	runeIdx := len([]rune(content[:byteIdx]))
+	queryRuneLen := len([]rune(query))
+
+	const context = 30 // 前後に表示する文字数
+	start := runeIdx - context
+	if start < 0 {
+		start = 0
+	}
+	end := runeIdx + queryRuneLen + context
+	if end > len(runes) {
+		end = len(runes)
+	}
+
+	snippet := string(runes[start:end])
+	snippet = strings.ReplaceAll(snippet, "\n", " ")
+	if start > 0 {
+		snippet = "..." + snippet
+	}
+	if end < len(runes) {
+		snippet += "..."
+	}
+	return true, snippet
 }

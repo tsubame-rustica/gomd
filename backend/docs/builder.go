@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"cmp"
 	"math"
 	"os"
 	"path/filepath"
@@ -102,17 +103,17 @@ func BuildTree(rootPath string) (*DocumentNode, error) {
 			categoryNode.Children = append(categoryNode.Children, fileNode)
 		}
 
-		// ファイルを Order 昇順でソート
+		// ファイルを Order 昇順でソート（cmp.Compare でオーバーフロー防止）
 		slices.SortFunc(categoryNode.Children, func(a, b *DocumentNode) int {
-			return a.Order - b.Order
+			return cmp.Compare(a.Order, b.Order)
 		})
 
 		rootNode.Children = append(rootNode.Children, categoryNode)
 	}
 
-	// カテゴリを Order 昇順でソート
+	// カテゴリを Order 昇順でソート（cmp.Compare でオーバーフロー防止）
 	slices.SortFunc(rootNode.Children, func(a, b *DocumentNode) int {
-		return a.Order - b.Order
+		return cmp.Compare(a.Order, b.Order)
 	})
 
 	return rootNode, nil
