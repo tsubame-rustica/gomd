@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { DocumentNode } from './callApi'
+import { API_BASE, type DocumentNode } from './callApi'
 
 interface TreeContextValue {
     tree: DocumentNode | null
@@ -20,8 +20,11 @@ export function TreeProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        fetch('/api/tree')
-            .then(res => res.json())
+        fetch(`${API_BASE}/api/tree`)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.json()
+            })
             .then((data: DocumentNode) => setTree(data))
             .catch(err => {
                 console.error('Failed to fetch tree:', err)

@@ -2,12 +2,20 @@ services:
   backend:
     build:
       context: ./backend
+      target: dev
     ports:
       - "8080:8080"
     volumes:
       - ./backend:/app
     environment:
       - CGO_ENABLED=0
+      - CORS_ALLOW_ORIGIN=http://localhost:5173
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/tree"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   frontend:
     build:

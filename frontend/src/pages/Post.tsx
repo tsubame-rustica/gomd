@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom'
+import DOMPurify from 'dompurify'
 import Sidebar from '../Sidebar'
 import { useFetchContent } from '../callApi'
 
@@ -22,7 +23,7 @@ function Post() {
                 {isMd && !loading && !error && (
                     <div
                         className="prose prose-blue ml-8 m-4"
-                        dangerouslySetInnerHTML={{ __html: content }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
                     />
                 )}
             </main>

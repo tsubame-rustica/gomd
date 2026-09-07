@@ -10,8 +10,63 @@ export interface DocumentNode {
 }
 
 
+// バックエンドの API ベース URL (末尾のスラッシュを除去)
+export const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
+
+// HTML内の画像パスを API_BASE 付きの Cloud Run エンドポイントに解決する関数
+export function resolveContentHtml(html: string, mdUrlPath: string): string {
+    const lastSlash = mdUrlPath.lastIndexOf('/')
+    const baseDir = lastSlash > 0 ? mdUrlPath.slice(0, lastSlash) : ''
+
+    return html.replace(/<img\s+([^>]*?)src=["']([^"']+)["']([^>]*?)>/gi, (match, before, src, after) => {
+        // 絶対URL (http://, https://, //) や data URI はそのまま
+        if (/^(https?:|\/\/|data:)/i.test(src)) {
+            return match
+        }
+
+        let resolvedPath: string
+        if (src.startsWith('/api/contents/')) {
+            resolvedPath = src
+        } else if (src.startsWith('/')) {
+            resolvedPath = `/api/contents${src}`
+        } else {
+            const cleanPath = `${baseDir}/${src}`.replace(/\/\.\//g, '/')
+            resolvedPath = `/api/contents${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`
+        }
+
+        const fullSrc = API_BASE ? `${API_BASE}${resolvedPath}` : resolvedPath
+        return `<img ${before}src="${fullSrc}"${after}>`
+    })
+}
+
+// インメモリLRUキャッシュ（最大100エントリ）: 記事数が増えてもメモリが無制限に増えないようにする
+// erasableSyntaxOnly 対応のためクロージャで実装（class不使用）
+function makeLruCache<V>(max: number) {
+    const map = new Map<string, V>()
+    return {
+        get(key: string): V | undefined {
+            if (!map.has(key)) return undefined
+            // アクセスされたキーをMRU（末尾）に移動
+            const val = map.get(key)!
+            map.delete(key)
+            map.set(key, val)
+            return val
+        },
+        set(key: string, val: V) {
+            if (map.has(key)) map.delete(key)
+            else if (map.size >= max) {
+                // 最も古いエントリ（先頭）を削除
+                const oldest = map.keys().next().value!
+                map.delete(oldest)
+            }
+            map.set(key, val)
+        },
+        has(key: string) { return map.has(key) },
+    }
+}
+
 // 記事HTMLコンテンツのインメモリキャッシュ (urlPath -> HTML文字列)
-const contentCache = new Map<string, string>()
+const contentCache = makeLruCache<string>(100)
 
 // GET /api/contents/*path でMarkdownをHTMLに変換して取得するカスタムフック
 export function useFetchContent(urlPath: string) {
@@ -37,7 +92,7 @@ export function useFetchContent(urlPath: string) {
 
         setLoading(true)
         setError(null)
-        fetch(`/api/contents${urlPath}`)
+        fetch(`${API_BASE}/api/contents${urlPath}`)
             .then(res => {
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}`)
@@ -45,8 +100,9 @@ export function useFetchContent(urlPath: string) {
                 return res.json()
             })
             .then((data: { contents: string }) => {
-                contentCache.set(urlPath, data.contents)
-                setContent(data.contents)
+                const resolvedHtml = resolveContentHtml(data.contents, urlPath)
+                contentCache.set(urlPath, resolvedHtml)
+                setContent(resolvedHtml)
             })
             .catch(err => {
                 console.error('Failed to fetch content:', err)
@@ -72,14 +128,18 @@ export function useSearch(query: string) {
     useEffect(() => {
         if (!query.trim()) {
             setResults([])
+            setError(null)  // Fix #8: クエリが空になったときにエラー状態もリセット
             return
         }
 
         setLoading(true)
         // debounce的に少し待つのは呼び出し側で制御するか、ここでsetTimeoutを使う
         const timer = setTimeout(() => {
-            fetch(`/api/search?q=${encodeURIComponent(query)}`)
-                .then(res => res.json())
+            fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`)  // Fix #9: HTTPエラーを正しく検出
+                    return res.json()
+                })
                 .then(data => {
                     setResults(data.results || [])
                 })
