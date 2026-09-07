@@ -21,7 +21,10 @@ export function TreeProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         fetch(`${API_BASE}/api/tree`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.json()
+            })
             .then((data: DocumentNode) => setTree(data))
             .catch(err => {
                 console.error('Failed to fetch tree:', err)

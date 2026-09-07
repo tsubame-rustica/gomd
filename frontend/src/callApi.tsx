@@ -39,8 +39,34 @@ export function resolveContentHtml(html: string, mdUrlPath: string): string {
     })
 }
 
+// インメモリLRUキャッシュ（最大100エントリ）: 記事数が増えてもメモリが無制限に増えないようにする
+// erasableSyntaxOnly 対応のためクロージャで実装（class不使用）
+function makeLruCache<V>(max: number) {
+    const map = new Map<string, V>()
+    return {
+        get(key: string): V | undefined {
+            if (!map.has(key)) return undefined
+            // アクセスされたキーをMRU（末尾）に移動
+            const val = map.get(key)!
+            map.delete(key)
+            map.set(key, val)
+            return val
+        },
+        set(key: string, val: V) {
+            if (map.has(key)) map.delete(key)
+            else if (map.size >= max) {
+                // 最も古いエントリ（先頭）を削除
+                const oldest = map.keys().next().value!
+                map.delete(oldest)
+            }
+            map.set(key, val)
+        },
+        has(key: string) { return map.has(key) },
+    }
+}
+
 // 記事HTMLコンテンツのインメモリキャッシュ (urlPath -> HTML文字列)
-const contentCache = new Map<string, string>()
+const contentCache = makeLruCache<string>(100)
 
 // GET /api/contents/*path でMarkdownをHTMLに変換して取得するカスタムフック
 export function useFetchContent(urlPath: string) {
@@ -102,6 +128,7 @@ export function useSearch(query: string) {
     useEffect(() => {
         if (!query.trim()) {
             setResults([])
+            setError(null)  // Fix #8: クエリが空になったときにエラー状態もリセット
             return
         }
 
@@ -109,7 +136,10 @@ export function useSearch(query: string) {
         // debounce的に少し待つのは呼び出し側で制御するか、ここでsetTimeoutを使う
         const timer = setTimeout(() => {
             fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`)
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`)  // Fix #9: HTTPエラーを正しく検出
+                    return res.json()
+                })
                 .then(data => {
                     setResults(data.results || [])
                 })
